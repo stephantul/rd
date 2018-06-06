@@ -3,14 +3,7 @@ import argparse
 import os
 import unicodedata
 
-from .rd import rd
-from wordkit.features import fourteen, dislex, sixteen
-from wordkit.feature_extraction import OneHotCharacterExtractor
-from wordkit.transformers import WickelTransformer, \
-                                 ConstrainedOpenNGramTransformer, \
-                                 WeightedOpenBigramTransformer, \
-                                 OpenNGramTransformer, \
-                                 LinearTransformer
+from .rd import rd_features
 
 FEATURES = {"one hot",
             "constrained open ngrams",
@@ -51,7 +44,10 @@ if __name__ == "__main__":
                         choices=list(FEATURES),
                         required=True)
     parser.add_argument("-n", metavar="n", type=int, required=True)
-    parser.add_argument("--normalize", type=bool, default=False)
+    parser.add_argument("--normalize",
+                        const=True,
+                        default=False,
+                        action='store_const')
     parser.add_argument("--overwrite",
                         const=True,
                         default=False,
@@ -66,27 +62,11 @@ if __name__ == "__main__":
                         const=True,
                         default=False,
                         action='store_const')
+    parser.add_argument("--metric",
+                        default="cosine",
+                        type=str)
 
     args = parser.parse_args()
-
-    if args.features == "one hot":
-        f = LinearTransformer(OneHotCharacterExtractor, field=None)
-    elif args.features == "constrained open ngrams":
-        f = ConstrainedOpenNGramTransformer()
-    elif args.features == "weighted open bigrams":
-        f = WeightedOpenBigramTransformer((.1, .8, .2))
-    elif args.features == "open ngrams":
-        f = OpenNGramTransformer()
-    elif args.features == "fourteen":
-        f = LinearTransformer(fourteen)
-    elif args.features == "sixteen":
-        f = LinearTransformer(sixteen)
-    elif args.features == "dislex":
-        f = LinearTransformer(dislex)
-    elif args.features == "wickel":
-        f = WickelTransformer()
-    else:
-        raise ValueError("not recognized")
 
     words = []
 
@@ -97,6 +77,10 @@ if __name__ == "__main__":
 
     if args.normalize:
         words = [normalize(x) for x in words]
-    X = f.fit_transform(words)
-    z = rd(X, [args.n], memory_safe=args.safe)
-    write_scores(args.output, words, z, args.overwrite)
+
+    rd_scores = rd_features(args.features,
+                            words,
+                            [args.n],
+                            args.metric,
+                            args.safe)
+    write_scores(args.output, words, rd_scores, args.overwrite)

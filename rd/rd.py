@@ -2,6 +2,48 @@
 import numpy as np
 
 from sklearn.metrics import pairwise_distances
+from wordkit.features import fourteen, dislex, sixteen
+from wordkit.feature_extraction import OneHotCharacterExtractor
+from wordkit.transformers import WickelTransformer, \
+                                 ConstrainedOpenNGramTransformer, \
+                                 WeightedOpenBigramTransformer, \
+                                 OpenNGramTransformer, \
+                                 LinearTransformer
+
+
+def rd_features(words,
+                n=20,
+                feature_name="one hot",
+                metric="cosine",
+                memory_safe=False):
+    """Return the RD of some words fit with some features."""
+    X = select_features(feature_name, words)
+    return rd(X, n, memory_safe=memory_safe, metric=metric)
+
+
+def select_features(feature_name, words):
+    """Select a feature set and fit the words using that feature set."""
+    if feature_name == "one hot":
+        f = LinearTransformer(OneHotCharacterExtractor, field=None)
+    elif feature_name == "constrained open ngrams":
+        f = ConstrainedOpenNGramTransformer(field=None)
+    elif feature_name == "weighted open bigrams":
+        f = WeightedOpenBigramTransformer((.1, .8, .2), field=None)
+    elif feature_name == "open ngrams":
+        f = OpenNGramTransformer(field=None)
+    elif feature_name == "fourteen":
+        f = LinearTransformer(fourteen, field=None)
+    elif feature_name == "sixteen":
+        f = LinearTransformer(sixteen, field=None)
+    elif feature_name == "dislex":
+        f = LinearTransformer(dislex, field=None)
+    elif feature_name == "wickel":
+        f = WickelTransformer(field=None)
+    else:
+        raise ValueError("not recognized")
+
+    X = f.fit_transform(words)
+    return X
 
 
 def _cosine_safe(X):
@@ -42,12 +84,14 @@ def rd(X, n, memory_safe=False, metric="cosine"):
         A vector containing the density for each item.
 
     """
+    was_int = False
+    if isinstance(n, int):
+        n = [n]
+        was_int = True
     if np.any([x <= 0 for x in n]):
         raise ValueError("n of 0")
     if np.any([x > X.shape[0]-1 for x in n]):
         raise ValueError("Your n was bigger than the number of words - 1.")
-    if isinstance(n, int):
-        n == [n]
 
     if memory_safe:
 
@@ -69,6 +113,6 @@ def rd(X, n, memory_safe=False, metric="cosine"):
     for x in n:
         out.append(d[:, 1:x+1].mean(1))
 
-    if len(out) == 1:
+    if was_int:
         out = out[0]
     return out

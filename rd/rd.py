@@ -17,11 +17,11 @@ def rd_features(words,
                 metric="cosine",
                 memory_safe=False):
     """Return the RD of some words fit with some features."""
-    X = select_features(feature_name, words)
+    X = select_features(words, feature_name)
     return rd(X, n, memory_safe=memory_safe, metric=metric)
 
 
-def select_features(feature_name, words):
+def select_features(words, feature_name):
     """Select a feature set and fit the words using that feature set."""
     if feature_name == "one hot":
         f = LinearTransformer(OneHotCharacterExtractor, field=None)
@@ -38,7 +38,7 @@ def select_features(feature_name, words):
     elif feature_name == "dislex":
         f = LinearTransformer(dislex, field=None)
     elif feature_name == "wickel":
-        f = WickelTransformer(field=None)
+        f = WickelTransformer(n=3, field=None)
     else:
         raise ValueError("not recognized")
 
@@ -48,11 +48,11 @@ def select_features(feature_name, words):
 
 def _cosine_safe(X):
     """Memory safe cosine. Slow."""
-    dists = []
+    dists = np.zeros((X.shape[0], X.shape[0]))
     X = X / np.linalg.norm(X, axis=1)[:, None]
     for x in range(0, len(X), 100):
-        dists.extend(1 - X[x:x+100].dot(X.T))
-    return np.array(dists)
+        dists[x:x+100] = 1 - X[x:x+100].dot(X.T)
+    return dists
 
 
 def _euclidean_safe(X):
@@ -63,6 +63,11 @@ def _euclidean_safe(X):
         diff = batch[:, None, :] - X[None, :, :]
         dists.extend(np.linalg.norm(diff, axis=-1))
     return np.array(dists)
+
+
+def _dist_mtr(X, metric):
+    """Separate method because sometimes we want to analyze the matrix."""
+    return pairwise_distances(X, metric=metric)
 
 
 def rd(X, n, memory_safe=False, metric="cosine"):
@@ -103,7 +108,7 @@ def rd(X, n, memory_safe=False, metric="cosine"):
             raise ValueError("")
 
     else:
-        dists = pairwise_distances(X, metric=metric)
+        dists = _dist_mtr(X, metric=metric)
 
     out = []
 

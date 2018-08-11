@@ -113,7 +113,7 @@ def rd(X, n, memory_safe=False, metric="cosine"):
     out = []
 
     largest_n = max(n)
-    d = np.partition(dists, kth=largest_n+1, axis=1)[:, 1:largest_n+1]
+    d = np.partition(dists, kth=largest_n+1, axis=1)[:, :largest_n+1]
     d = np.sort(d, axis=1)
     for x in n:
         out.append(d[:, 1:x+1].mean(1))

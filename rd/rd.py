@@ -46,40 +46,47 @@ def select_features(words, feature_name):
     return X
 
 
-def _cosine_safe(X):
+def _cosine_safe(X, Y):
     """Memory safe cosine. Slow."""
     dists = np.zeros((X.shape[0], X.shape[0]))
     X = X / np.linalg.norm(X, axis=1)[:, None]
     for x in range(0, len(X), 100):
-        dists[x:x+100] = 1 - X[x:x+100].dot(X.T)
+        dists[x:x+100] = 1 - X[x:x+100].dot(Y.T)
     return dists
 
 
-def _euclidean_safe(X):
+def _euclidean_safe(X, Y):
     """Memory safe euclidean distance."""
     dists = []
     for x in range(0, len(X), 100):
         batch = X[x:x+100]
-        diff = batch[:, None, :] - X[None, :, :]
+        diff = batch[:, None, :] - Y[None, :, :]
         dists.extend(np.linalg.norm(diff, axis=-1))
     return np.array(dists)
 
 
-def _dist_mtr(X, metric):
+def _dist_mtr(X, Y, metric):
     """Separate method because sometimes we want to analyze the matrix."""
-    return pairwise_distances(X, metric=metric)
+    if X is Y:
+        return pairwise_distances(X, metric=metric)
+    return pairwise_distances(X, Y, metric=metric)
 
 
-def rd(X, n, memory_safe=False, metric="cosine"):
+def rd(X, Y=None, n=20, memory_safe=False, metric="cosine"):
     """
     Calculate the representation density for values of n.
 
     n can either be an int or a list of ints
 
+    If only X is given, the density will be computed based on X * X
+    if Y is also given, the density will be computed based on X * Y
+
     Parameters
     ----------
     X : np.array
-        The representations from which to calculate the density.
+        The representations for which to calculate the density
+    Y : np.array
+        The reference representations to use
     n : int or list of int
         The number of neighbors to take into account.
 
@@ -90,6 +97,8 @@ def rd(X, n, memory_safe=False, metric="cosine"):
 
     """
     was_int = False
+    if Y is None:
+        Y = X
     if isinstance(n, int):
         n = [n]
         was_int = True
@@ -101,14 +110,14 @@ def rd(X, n, memory_safe=False, metric="cosine"):
     if memory_safe:
 
         if metric == "cosine":
-            dists = _cosine_safe(X)
+            dists = _cosine_safe(X, Y)
         elif metric == "euclidean":
-            dists = _euclidean_safe(X)
+            dists = _euclidean_safe(X, Y)
         else:
-            raise ValueError("")
+            raise ValueError("Metric not available in safe mode.")
 
     else:
-        dists = _dist_mtr(X, metric=metric)
+        dists = _dist_mtr(X, Y, metric=metric)
 
     out = []
 

@@ -28,7 +28,7 @@ def _euclidean_safe(X, Y):
     return np.array(dists)
 
 
-def _dist_mtr(X, Y, metric):
+def dist_mtr(X, Y, metric):
     """Separate method because sometimes we want to analyze the matrix."""
     if X is Y:
         return pairwise_distances(X, metric=metric)
@@ -80,7 +80,7 @@ def rd(X, Y=None, n=20, memory_safe=False, metric="cosine"):
             raise ValueError("Metric not available in safe mode.")
 
     else:
-        dists = _dist_mtr(X, Y, metric=metric)
+        dists = dist_mtr(X, Y, metric=metric)
 
     out = []
 

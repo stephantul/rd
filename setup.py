@@ -5,7 +5,7 @@ from setuptools import find_packages
 
 
 setup(name='rd',
-      version='1.0.0',
+      version='1.1.0',
       description='Calculate the rd distance to a lexicon.',
       author='Stéphan Tulkens',
       author_email='stephan.tulkens@uantwerpen.be',

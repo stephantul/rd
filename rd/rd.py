@@ -59,6 +59,8 @@ def rd(X, Y=None, n=20, memory_safe=False, metric="cosine"):
         A vector containing the density for each item.
 
     """
+    if isinstance(X, list):
+        X = np.asarray(X)
     was_int = False
     if Y is None:
         Y = X
